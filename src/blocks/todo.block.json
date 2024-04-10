@@ -2,7 +2,7 @@
   "type": "section",
   "text": {
     "type": "mrkdwn",
-    "text": "*{title}*\n{desc}"
+    "text": "*{{title}}*\n{{desc}}"
   },
   "accessory": {
     "type": "button",
