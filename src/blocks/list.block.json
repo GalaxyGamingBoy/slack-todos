@@ -8,7 +8,7 @@
 				"emoji": true
 			}
 		},
-		{list}
+		{{list}}
 		{
 			"type": "divider"
 		}
