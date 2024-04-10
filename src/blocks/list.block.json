@@ -8,22 +8,7 @@
 				"emoji": true
 			}
 		},
-		{
-			"type": "section",
-			"text": {
-				"type": "mrkdwn",
-				"text": "*TITLE*\nDESCRIPTION"
-			},
-			"accessory": {
-				"type": "button",
-				"text": {
-					"type": "plain_text",
-					"emoji": true,
-					"text": "Mark Completed :white_check_mark:"
-				},
-				"value": "click_me_123"
-			}
-		},
+		{list}
 		{
 			"type": "divider"
 		}
