@@ -1,0 +1,7 @@
+image: gitpod/workspace-postgres
+ports:
+  - port: 3000
+    visibility: public
+vscode:
+  extensions:
+    - pinage404.rust-extension-pack
