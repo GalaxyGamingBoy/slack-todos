@@ -11,6 +11,6 @@
       "emoji": true,
       "text": "Mark Completed :white_check_mark:"
     },
-    "value": "{id}"
+    "value": "{{id}}"
   }
 },

@@ -1,10 +1,18 @@
 use std::env;
 
 use dotenvy::dotenv;
-use sqlx::{migrate, postgres::PgPoolOptions};
+use slack::SlackApp;
+use sqlx::{migrate, postgres::PgPoolOptions, types::chrono, PgPool};
 
 mod router;
 mod slack;
+mod todo;
+
+#[derive(Clone)]
+pub struct ServerState {
+    db: PgPool,
+    slack: SlackApp,
+}
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -27,7 +35,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let slack = slack::SlackApp::new();
     slack
         .send_message(
-            "Hello! Glad to be back online".into(),
+            format!(
+                "[START]: {} - v{} ({})",
+                env!("CARGO_PKG_NAME"),
+                env!("CARGO_PKG_VERSION"),
+                chrono::Utc::now().to_rfc3339()
+            ),
             env::var("SLACK_LOG_CHANNEL").unwrap(),
         )
         .await
@@ -38,7 +51,12 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("Running Axum server on: {}", server);
     let listener = tokio::net::TcpListener::bind(&server).await.unwrap();
-    axum::serve(listener, router::get_router()).await.unwrap();
+    axum::serve(
+        listener,
+        router::get_router().with_state(ServerState { db: pool, slack }),
+    )
+    .await
+    .unwrap();
 
     Ok(())
 }
