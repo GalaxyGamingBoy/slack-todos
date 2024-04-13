@@ -7,7 +7,11 @@ use axum::{
 };
 
 use crate::{
-    slack::{SlackBlock, SlackCommand, SlackInteraction, SlackInteractionData, SlackModal},
+    slack::{
+        block::SlackBlock,
+        modal::SlackModal,
+        payloads::{SlackCommand, SlackInteraction, SlackInteractionData},
+    },
     todo::Todo,
     ServerState,
 };
