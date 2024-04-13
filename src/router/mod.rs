@@ -120,8 +120,6 @@ async fn slack_interactivity(
     let mut block = SlackBlock::new("created".to_string());
     block.load().fill(template).trim();
 
-    println!("{:?}", block.data);
-
     match state
         .slack
         .send_ephemeral(
