@@ -5,3 +5,9 @@ ports:
 vscode:
   extensions:
     - pinage404.rust-extension-pack
+    - bungcip.better-toml
+    - hbenl.vscode-test-explorer
+    - hbenl.test-adapter-converter
+    - rust-lang.rust-analyzer
+    - serayuzgur.crates
+    - swellaby.vscode-rust-test-adapter
