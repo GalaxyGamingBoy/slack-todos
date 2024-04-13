@@ -1,0 +1,61 @@
+{
+  "type": "modal",
+  "submit": {
+    "type": "plain_text",
+    "text": "Submit",
+    "emoji": true
+  },
+  "close": {
+    "type": "plain_text",
+    "text": "Cancel",
+    "emoji": true
+  },
+  "title": {
+    "type": "plain_text",
+    "text": "Create a Todo",
+    "emoji": true
+  },
+  "blocks": [
+    {
+      "type": "input",
+      "block_id": "input-title",
+      "element": {
+        "type": "plain_text_input",
+        "action_id": "input-title-action"
+      },
+      "label": {
+        "type": "plain_text",
+        "text": "Title",
+        "emoji": true
+      }
+    },
+    {
+      "type": "input",
+      "optional": true,
+      "block_id": "input-description",
+      "element": {
+        "type": "plain_text_input",
+        "multiline": true,
+        "action_id": "input-description-action"
+      },
+      "label": {
+        "type": "plain_text",
+        "text": "Description",
+        "emoji": true
+      }
+    },
+    {
+      "type": "section",
+      "block_id": "input-channel",
+      "text": {
+        "type": "mrkdwn",
+        "text": "Response Channel (Ephemeral):"
+      },
+      "accessory": {
+        "action_id": "input-channel-action",
+        "type": "channels_select",
+        "initial_channel": "{{initial_channel}}"
+      }
+    }
+  ]
+}

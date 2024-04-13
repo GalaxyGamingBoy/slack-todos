@@ -22,9 +22,50 @@ pub struct SlackCommand {
 }
 
 #[derive(Debug, Serialize, Deserialize, Clone, Default)]
+pub struct SlackInteractionUser {
+    pub username: String,
+    pub name: String,
+    pub id: String,
+    pub team_id: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+pub struct SlackInteractionTeam {
+    pub domain: String,
+    pub id: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+pub struct SlackInteractionView {
+    pub id: String,
+    pub r#type: String,
+    pub team_id: String,
+    pub private_metadata: String,
+    pub callback_id: String,
+    pub state: Value,
+    pub blocks: Value,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+pub struct SlackInteractionData {
+    pub r#type: String,
+    pub user: SlackInteractionUser,
+    pub team: SlackInteractionTeam,
+    pub api_app_id: String,
+    pub trigger_id: String,
+    pub token: String,
+    pub view: SlackInteractionView,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
+pub struct SlackInteraction {
+    pub payload: String,
+}
+
+#[derive(Debug, Serialize, Deserialize, Clone, Default)]
 pub struct SlackBlock {
     name: String,
-    data: String,
+    pub data: String,
 }
 
 impl SlackBlock {
@@ -49,11 +90,50 @@ impl SlackBlock {
 
         self
     }
+
+    pub fn trim(&mut self) -> &mut Self {
+        let data: Value = serde_json::from_str(&self.data).unwrap();
+        self.data = data["blocks"].to_string();
+
+        self
+    }
 }
 
 impl Into<Value> for SlackBlock {
     fn into(self) -> Value {
         serde_json::from_str(&self.data).unwrap_or_default()
+    }
+}
+
+#[derive(Deserialize, Serialize, Debug, Default)]
+pub struct SlackModal {
+    name: String,
+    pub data: String,
+    pub trigger: String,
+}
+
+impl SlackModal {
+    pub fn new(name: String, trigger: String) -> Self {
+        Self {
+            name,
+            trigger,
+            ..Default::default()
+        }
+    }
+
+    pub fn load(&mut self) -> &mut Self {
+        self.data = fs::read_to_string(format!("./src/modals/{}.modal.json", self.name)).unwrap();
+        self
+    }
+
+    pub fn fill(&mut self, args: HashMap<&str, String>) -> &mut Self {
+        args.iter().for_each(|arg| {
+            let key = format!("{{{{{}}}}}", arg.0);
+
+            self.data = self.data.replace(&key, arg.1);
+        });
+
+        self
     }
 }
 
@@ -107,12 +187,51 @@ impl SlackApp {
         self.validate_slack(res).await
     }
 
-    pub async fn send_webhook(&self, webhook: String, block: Value, ephemeral: bool) {
-        let mut data = block;
+    pub async fn send_ephemeral(
+        &self,
+        blocks: String,
+        channel: String,
+        user: String,
+    ) -> Result<Value, Value> {
+        let body = format!(
+            r#"{{"blocks": {}, "channel": "{}", "user": "{}"}}"#,
+            blocks, channel, user
+        );
+
+        let res = self
+            .client
+            .post("https://slack.com/api/chat.postEphemeral")
+            .body(body)
+            .send()
+            .await
+            .unwrap();
+
+        self.validate_slack(res).await
+    }
+
+    pub async fn send_webhook(&self, webhook: String, block: &mut Value, ephemeral: bool) {
+        let data = block;
         if ephemeral {
             data["response_type"] = Value::String("ephemeral".to_string())
         }
 
-        self.client.post(webhook).json(&data).send().await;
+        let _ = self.client.post(webhook).json(data).send().await;
+    }
+
+    pub async fn open_modal(&self, modal: &SlackModal) -> Result<Value, Value> {
+        let data = format!(
+            r#"{{"trigger_id": "{}", "view": {}}}"#,
+            modal.trigger, modal.data
+        );
+
+        let res = self
+            .client
+            .post("https://slack.com/api/views.open")
+            .body(data)
+            .send()
+            .await
+            .unwrap();
+
+        self.validate_slack(res).await
     }
 }
