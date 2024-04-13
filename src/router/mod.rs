@@ -31,7 +31,11 @@ async fn todo_new(State(state): State<ServerState>, Form(payload): Form<SlackCom
         let mut modal = SlackModal::new("create".to_string(), payload.trigger_id);
         modal.load().fill(template);
 
-        state.slack.open_modal(&modal).await;
+        match state.slack.open_modal(&modal).await {
+            Ok(_) => {}
+            Err(err) => println!("An error occured while openning a modal. {err}"),
+        }
+
         return;
     }
 
@@ -40,7 +44,13 @@ async fn todo_new(State(state): State<ServerState>, Form(payload): Form<SlackCom
         slack_user: payload.user_id,
         ..Default::default()
     };
-    todo.assign_id().insert(&state.db).await;
+    match todo.assign_id().insert(&state.db).await {
+        Ok(_) => {}
+        Err(err) => {
+            println!("An error occured inserting todo to the database. {err}");
+            return;
+        }
+    }
 
     let mut template: HashMap<&str, String> = HashMap::new();
     template.insert("title", todo.title);
@@ -59,8 +69,17 @@ async fn slack_interactivity(
     State(state): State<ServerState>,
     Form(interaction): Form<SlackInteraction>,
 ) {
-    let payload: SlackInteractionData = serde_json::from_str(&interaction.payload).unwrap();
-    if (payload.r#type != "view_submission") {
+    let payload = serde_json::from_str(&interaction.payload);
+
+    let payload: SlackInteractionData = match payload {
+        Ok(v) => v,
+        Err(err) => {
+            println!("Couldn't extract payload from slack: {err}");
+            return;
+        }
+    };
+
+    if payload.r#type != "view_submission" {
         return;
     };
 
@@ -74,12 +93,21 @@ async fn slack_interactivity(
         .as_str();
 
     let mut todo = Todo {
-        title: title.unwrap().to_string(),
+        title: title
+            .expect("Slack Interaction did not contain title! Is it in the modal?")
+            .to_string(),
         description: description.map(str::to_string),
         slack_user: payload.user.id.clone(),
         ..Default::default()
     };
-    todo.assign_id().insert(&state.db).await;
+
+    match todo.assign_id().insert(&state.db).await {
+        Ok(_) => {}
+        Err(err) => {
+            println!("An error occured inserting todo to the database. {err}");
+            return;
+        }
+    }
 
     let mut template: HashMap<&str, String> = HashMap::new();
     template.insert("title", todo.title);
@@ -90,9 +118,18 @@ async fn slack_interactivity(
 
     println!("{:?}", block.data);
 
-    state
+    match state
         .slack
-        .send_ephemeral(block.data, channel.unwrap().to_string(), payload.user.id)
+        .send_ephemeral(
+            block.data,
+            channel
+                .expect("Slack Interaction did not contain channel-id! Is it in the modal?")
+                .to_string(),
+            payload.user.id,
+        )
         .await
-        .unwrap();
+    {
+        Ok(_) => {}
+        Err(err) => println!("An error occured while creating an ephemeral messsage {err}"),
+    }
 }

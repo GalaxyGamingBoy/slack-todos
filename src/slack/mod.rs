@@ -77,7 +77,8 @@ impl SlackBlock {
     }
 
     pub fn load(&mut self) -> &mut Self {
-        self.data = fs::read_to_string(format!("./src/blocks/{}.block.json", self.name)).unwrap();
+        self.data = fs::read_to_string(format!("./src/blocks/{}.block.json", self.name))
+            .expect("Slack block file not found!");
         self
     }
 
@@ -92,7 +93,8 @@ impl SlackBlock {
     }
 
     pub fn trim(&mut self) -> &mut Self {
-        let data: Value = serde_json::from_str(&self.data).unwrap();
+        let data: Value =
+            serde_json::from_str(&self.data).expect("Slack block isn't valid JSON data");
         self.data = data["blocks"].to_string();
 
         self
@@ -122,7 +124,8 @@ impl SlackModal {
     }
 
     pub fn load(&mut self) -> &mut Self {
-        self.data = fs::read_to_string(format!("./src/modals/{}.modal.json", self.name)).unwrap();
+        self.data = fs::read_to_string(format!("./src/modals/{}.modal.json", self.name))
+            .expect("Slack modal file wasn't found!");
         self
     }
 
@@ -147,27 +150,39 @@ impl SlackApp {
         let mut headers = reqwest::header::HeaderMap::new();
         headers.insert(
             CONTENT_TYPE,
-            "application/json; charset=utf-8".parse().unwrap(),
+            "application/json; charset=utf-8".parse().unwrap(), // Unwrap kept; Hardcoded data
         );
         headers.insert(
             AUTHORIZATION,
-            format!("Bearer {}", env::var("SLACK_TOKEN").unwrap())
-                .parse()
-                .unwrap(),
+            format!(
+                "Bearer {}",
+                env::var("SLACK_TOKEN")
+                    .expect("Can't find SLACK_TOKEN environment variable, is it there?")
+            )
+            .parse()
+            .expect("Bearer token is not valid! Is the SLACK_TOKEN environment variable correct?"),
         );
 
         Self {
             client: reqwest::Client::builder()
                 .default_headers(headers)
                 .build()
-                .unwrap(),
+                .expect("An error occured while building the reqwest client!"),
         }
     }
 
     async fn validate_slack(&self, response: Response) -> Result<Value, Value> {
-        let data: Value = response.json().await.unwrap();
+        let data = response.json().await;
 
-        if data["ok"].as_bool().unwrap() == false {
+        let data: Value = match data {
+            Ok(v) => v,
+            Err(err) => {
+                println!("An error occured while deserializing the slack data! {err}");
+                return Err(json!({"msg": "Deserialization error"}));
+            }
+        };
+
+        if data["ok"].as_bool().unwrap_or(false) == false {
             println!("Slack API Error! {:?}", data);
             return Err(data);
         }
@@ -176,15 +191,19 @@ impl SlackApp {
     }
 
     pub async fn send_message(&self, text: String, channel: String) -> Result<Value, Value> {
-        let res = self
+        match self
             .client
             .post("https://slack.com/api/chat.postMessage")
             .json(&json!({"text": text, "channel": channel}))
             .send()
             .await
-            .unwrap();
-
-        self.validate_slack(res).await
+        {
+            Ok(v) => self.validate_slack(v).await,
+            Err(err) => {
+                println!("An error occured while sending request to slack API: {err}");
+                Err(json!({"msg": "Slack API Request Error"}))
+            }
+        }
     }
 
     pub async fn send_ephemeral(
@@ -198,15 +217,19 @@ impl SlackApp {
             blocks, channel, user
         );
 
-        let res = self
+        match self
             .client
             .post("https://slack.com/api/chat.postEphemeral")
             .body(body)
             .send()
             .await
-            .unwrap();
-
-        self.validate_slack(res).await
+        {
+            Ok(v) => self.validate_slack(v).await,
+            Err(err) => {
+                println!("An error occured while sending request to slack API: {err}");
+                Err(json!({"msg": "Slack API Request Error"}))
+            }
+        }
     }
 
     pub async fn send_webhook(&self, webhook: String, block: &mut Value, ephemeral: bool) {
@@ -215,7 +238,10 @@ impl SlackApp {
             data["response_type"] = Value::String("ephemeral".to_string())
         }
 
-        let _ = self.client.post(webhook).json(data).send().await;
+        match self.client.post(webhook).json(data).send().await {
+            Ok(_) => {}
+            Err(err) => println!("An error occured while sending a slack webhook: {err}"),
+        }
     }
 
     pub async fn open_modal(&self, modal: &SlackModal) -> Result<Value, Value> {
@@ -224,14 +250,18 @@ impl SlackApp {
             modal.trigger, modal.data
         );
 
-        let res = self
+        match self
             .client
             .post("https://slack.com/api/views.open")
             .body(data)
             .send()
             .await
-            .unwrap();
-
-        self.validate_slack(res).await
+        {
+            Ok(v) => self.validate_slack(v).await,
+            Err(err) => {
+                println!("An error occured while sending request to slack API: {err}");
+                Err(json!({"msg": "Slack API Request Error"}))
+            }
+        }
     }
 }

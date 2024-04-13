@@ -1,5 +1,5 @@
 use serde::{Deserialize, Serialize};
-use sqlx::PgPool;
+use sqlx::{postgres::PgQueryResult, PgPool};
 
 #[derive(Debug, Serialize, Deserialize, Default)]
 pub struct Todo {
@@ -17,10 +17,8 @@ impl Todo {
         self
     }
 
-    pub async fn insert(&self, db: &PgPool) -> &Self {
+    pub async fn insert(&self, db: &PgPool) -> Result<PgQueryResult, sqlx::Error> {
         sqlx::query!(r#"INSERT INTO todos (id, title, description, completed, slack_user) VALUES ($1, $2, $3, $4, $5)"#,
-            self.id, self.title, self.description, self.completed, self.slack_user).execute(db).await.unwrap();
-
-        self
+            self.id, self.title, self.description, self.completed, self.slack_user).execute(db).await
     }
 }
