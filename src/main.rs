@@ -4,6 +4,7 @@ use dotenvy::dotenv;
 use slack::SlackApp;
 use sqlx::{migrate, postgres::PgPoolOptions, types::chrono, PgPool};
 
+mod action;
 mod router;
 mod slack;
 mod todo;

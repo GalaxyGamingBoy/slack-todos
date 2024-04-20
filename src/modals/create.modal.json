@@ -43,19 +43,6 @@
         "text": "Description",
         "emoji": true
       }
-    },
-    {
-      "type": "section",
-      "block_id": "input-channel",
-      "text": {
-        "type": "mrkdwn",
-        "text": "Response Channel (Ephemeral):"
-      },
-      "accessory": {
-        "action_id": "input-channel-action",
-        "type": "channels_select",
-        "initial_channel": "{{initial_channel}}"
-      }
     }
   ]
 }
