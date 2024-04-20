@@ -35,6 +35,8 @@ impl SlackApp {
         Self {
             client: reqwest::Client::builder()
                 .default_headers(headers)
+                .danger_accept_invalid_certs(true)
+                .proxy(reqwest::Proxy::https("http://localhost:8080").unwrap())
                 .build()
                 .expect("An error occured while building the reqwest client!"),
         }
@@ -72,6 +74,23 @@ impl SlackApp {
                 println!("An error occured while sending request to slack API: {err}");
                 Err(json!({"msg": "Slack API Request Error"}))
             }
+        }
+    }
+
+    pub async fn send_block(&self, channel: String, block: &mut Value) {
+        let mut data: Value = Value::default();
+        data["blocks"] = block.clone();
+        data["channel"] = Value::String(channel);
+
+        match self
+            .client
+            .post("https://slack.com/api/chat.postMessage")
+            .json(&data)
+            .send()
+            .await
+        {
+            Ok(_) => {}
+            Err(err) => println!("An error occured while sending a slack webhook: {err}"),
         }
     }
 
@@ -136,5 +155,6 @@ impl SlackApp {
 }
 
 pub mod block;
+pub mod escape;
 pub mod modal;
 pub mod payloads;

@@ -4,11 +4,11 @@
 			"type": "header",
 			"text": {
 				"type": "plain_text",
-				"text": "Your to-dos @ :scroll:",
+				"text": "Todo List for <@{{user}}> :scroll:",
 				"emoji": true
 			}
 		},
-		{{list}}
+		{{list}},
 		{
 			"type": "divider"
 		}
