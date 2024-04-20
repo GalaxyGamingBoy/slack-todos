@@ -35,8 +35,8 @@ impl SlackApp {
         Self {
             client: reqwest::Client::builder()
                 .default_headers(headers)
-                .danger_accept_invalid_certs(true)
-                .proxy(reqwest::Proxy::https("http://localhost:8080").unwrap())
+                // .danger_accept_invalid_certs(true)
+                // .proxy(reqwest::Proxy::https("http://localhost:8080").unwrap())
                 .build()
                 .expect("An error occured while building the reqwest client!"),
         }
